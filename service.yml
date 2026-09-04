@@ -1,0 +1,164 @@
+name: gitlab-runner
+icon: gitlab
+title: GitLab Runner
+type: service
+scalable: false
+
+labels:
+- gitlab-runner
+- ci
+- runner
+
+options:
+- version: '19'
+  tag: alpine-v19.3.0
+  default: true
+
+settings:
+- name: runner-token
+  title: Runner authentication token
+  description: Authentication token for a runner created in GitLab. The token must begin with glrt-.
+  placeholder: glrt-...
+  required: true
+  secret: true
+  var: CI_SERVER_TOKEN
+
+links:
+- name: gitlab
+  title: GitLab
+  required: true
+  helm:
+  - name: gitlabUrl
+    value: '{{link.service.primaryURL}}'
+  selectors:
+  - type: service
+    labels:
+    - gitlab
+
+helm:
+  name: gitlab-runner
+  source: https://charts.gitlab.io
+  chart: gitlab/gitlab-runner
+  version: 0.92.0
+  imagePullSecrets: imagePullSecrets
+  valueMappings:
+    replicas: replicas
+    disableNameOverride: true
+    serviceAccountName: serviceAccount.name
+    serviceAccountCreate: serviceAccount.create
+    strategy: strategy
+    shutdownGracePeriod: terminationGracePeriodSeconds
+  values:
+  - name: fullnameOverride
+    value: gitlab-runner
+  - name: rbac.create
+    value: true
+  - name: rbac.clusterWideAccess
+    value: false
+  - name: rbac.rules
+    value:
+    - apiGroups:
+      - ''
+      resources:
+      - events
+      verbs:
+      - list
+      - watch
+    - apiGroups:
+      - ''
+      resources:
+      - pods
+      verbs:
+      - create
+      - delete
+      - get
+      - list
+      - watch
+    - apiGroups:
+      - ''
+      resources:
+      - pods/attach
+      - pods/exec
+      verbs:
+      - create
+      - delete
+      - get
+      - patch
+    - apiGroups:
+      - ''
+      resources:
+      - pods/log
+      verbs:
+      - get
+      - list
+    - apiGroups:
+      - ''
+      resources:
+      - secrets
+      verbs:
+      - create
+      - delete
+      - get
+      - update
+    - apiGroups:
+      - ''
+      resources:
+      - serviceaccounts
+      verbs:
+      - get
+    - apiGroups:
+      - ''
+      resources:
+      - services
+      verbs:
+      - create
+      - get
+  - name: concurrent
+    value: 4
+  - name: metrics.enabled
+    value: true
+  - name: runners.config
+    value: |-
+      [[runners]]
+        [runners.kubernetes]
+          image = "alpine:3.22"
+          privileged = false
+          allow_privilege_escalation = false
+          cpu_request = "100m"
+          cpu_limit = "2"
+          memory_request = "256Mi"
+          memory_limit = "2Gi"
+          helper_cpu_request = "50m"
+          helper_cpu_limit = "500m"
+          helper_memory_request = "250Mi"
+          helper_memory_limit = "512Mi"
+          service_cpu_request = "100m"
+          service_cpu_limit = "1"
+          service_memory_request = "128Mi"
+          service_memory_limit = "1Gi"
+
+workloads:
+- name: main
+  selector:
+    matchLabels:
+      app: gitlab-runner
+      release: '{{helm.release}}'
+  kind: deployment
+  primary: true
+  helm:
+    replicas: replicas
+    labels: podLabels
+    annotations: podAnnotations
+    strategy: strategy
+    shutdownGracePeriod: terminationGracePeriodSeconds
+  containers:
+  - name: gitlab-runner
+    image: registry.gitlab.com/gitlab-org/gitlab-runner
+    helm:
+      resources: resources
+      secretEnvFrom: extraEnvFromRefs
+      image:
+        registry: image.registry
+        repository: image.image
+        tag: image.tag
+        pullPolicy: imagePullPolicy
