@@ -155,6 +155,10 @@ workloads:
   containers:
   - name: gitlab-runner
     image: registry.gitlab.com/gitlab-org/gitlab-runner
+    resources:
+      request:
+        cpu: 10
+        memory: 64
     helm:
       resources: resources
       secretEnvFrom: extraEnvFromRefs
