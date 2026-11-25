@@ -11,14 +11,13 @@ labels:
 
 options:
 - version: '19'
-  tag: alpine-v19.5.3
+  tag: alpine-v19.5.4
   default: true
 
 settings:
 - name: runner-token
   title: Runner authentication token
-  description: Authentication token for a runner created in GitLab. The token 
-    must begin with glrt-.
+  description: Authentication token for a runner created in GitLab. The token must begin with glrt-.
   placeholder: glrt-...
   required: true
   secret: true
@@ -40,7 +39,7 @@ helm:
   name: gitlab-runner
   source: https://charts.gitlab.io
   chart: gitlab/gitlab-runner
-  version: 0.94.3
+  version: 0.94.4
   imagePullSecrets: imagePullSecrets
   valueMappings:
     replicas: replicas
